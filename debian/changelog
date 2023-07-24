@@ -1,0 +1,6 @@
+n4d-taskscheduler (2.9) focal-updates; urgency=medium
+
+  * Split from taskscheduler
+  * Plugin for python3-taskscheduler
+
+ -- Juanma1980 <juanma1980@gmail.com>  Mon, 24 Jul 2023 12:49:03 +0200
