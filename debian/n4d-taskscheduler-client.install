@@ -1,1 +1,2 @@
-python-plugins/SchedulerClient.py /usr/share/n4d/python-plugins
+n4d/python-plugins/SchedulerClient.py /usr/share/n4d/python-plugins
+n4d/conf.d/SchedulerClient.json /etc/n4d/conf.d
