@@ -30,31 +30,54 @@ class SchedulerServer():
 	def get_local_tasks(self):
 	#This function is for compat with BellScheduler only. 
 	#It fakes the output of the old n4d server plugin
-		output={"BellScheduler":{}}
 		tasks=self.taskscheduler.getSystemCron()
-		for key,item in tasks.items():
-			#The bellID is the last parm if "bellscheduler" in line
-			if "BellSchedulerPlayer" in item.get("cmd",""):
-				bellId=item["cmd"].split(" ")[-1]
-				item["BellId"]=str(bellId)
-				output["BellScheduler"].update({bellId:item})
+		output=self._filterBellSchedulerTasks(tasks)
 		self._debug("OUTPUT: {}".format(output))
 		return n4d.responses.build_successful_call_response(output)
 	#def get_local_tasks
+
+	def _filterBellSchedulerTasks(self,tasks):
+		output={"BellScheduler":{}}
+		for key,item in tasks.items():
+			if "/etc/cron.d/localBellScheduler" == item.get("file","") or item.get("file","x")=="x":
+				#The bellID is the last parm if "bellscheduler" in line
+				if "BellSchedulerPlayer" in item.get("cmd",""):
+					bellId=item["cmd"].split(" ")[-1]
+					item["BellId"]=str(bellId)
+					output["BellScheduler"].update({bellId:item})
+		return(output)
+	#def _filterBellSchedulerTasks
+
+	def _getRawFromBellID(self,bellID):
+		raw=""
+		self._debug("Searching BellID: {}".format(str(bellID)))
+		tasks=self.get_local_tasks()
+		self._debug("RAW: {}".format(tasks))
+		tasks=self.taskscheduler.getSystemCron()
+		bellTasks=self._filterBellSchedulerTasks(tasks).get(str("BellScheduler"),{})
+		self._debug("In data: {}".format(bellTasks))
+		if str(bellID) in bellTasks.keys():
+			raw=bellTasks[str(bellID)].get("raw","")
+		self._debug("Get: {}".format(raw))
+		return(raw)
+	#def _getRawFromBellID
 			
 	def write_tasks(self,*args):
 	#This function is for compat with BellScheduler only. 
 	#It fakes the input of the old n4d server plugin
+	#The new API distinguishes bewteen add/modiify 
+	#checking for the presence of the original cmdline
+	#So it's mandatory to get that through BellID
 		inputTask=args[-1]
-		cronArray=[]
+		cron=[]
 		for key,taskline in inputTask.items():
 			if key=="BellScheduler":
-				print(taskline)
+				self._debug("L: {}".format(taskline))
 				for taskKey,task in taskline.items():
-					line="{0} {1} {2} {3} {4} root {5}".format(task.get("m",0),task.get("h",0),task.get("dom",1),task.get("mon",1),task.get("dow",1),task.get("cmd",""))
-					cronArray.append(line)
-					print(line)
-				self.taskscheduler.writeSystemCron(cronArray,"localBellScheduler")
+					bellTask=self._getRawFromBellID(taskKey)
+					cron.append(task)
+		self._debug("FULL CRON: {}".format(cron))
+		self.taskscheduler.cronFromJson(cron,cronF="/etc/cron.d/localBellScheduler",orig=bellTask)
 		return n4d.responses.build_successful_call_response()
 	#def write_tasks
 
@@ -70,7 +93,6 @@ class SchedulerServer():
 				cron=[]
 				with open(cronF,"r") as fh:
 					for line in fh.readlines():
-						print(line.split()[-1].strip())
 						if line.split()[-1].strip()!=str(bellId):
 							self._debug(cron.append(line))
 				with open(cronF,"w") as fh:
