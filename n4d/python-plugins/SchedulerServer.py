@@ -18,6 +18,7 @@ class SchedulerServer():
 		self.available_tasks_dir="/etc/scheduler/conf.d/tasks"
 		self.conf_dir="/etc/scheduler/conf.d/"
 		self.conf_file="%s/scheduler.conf"%self.conf_dir
+		self.holidays_shell="/usr/bin/check_holidays.py"
 		self.n4dCore=n4dCore.Core.get_core()
 		self.taskscheduler=taskscheduler.TaskScheduler()
 	#def __init__
@@ -38,13 +39,17 @@ class SchedulerServer():
 
 	def _filterBellSchedulerTasks(self,tasks):
 		output={"BellScheduler":{}}
+		print("REV: {}".format(tasks))
 		for key,item in tasks.items():
 			if "/etc/cron.d/localBellScheduler" == item.get("file","") or item.get("file","x")=="x":
+				print("FILETERD")
+				print(item)
 				#The bellID is the last parm if "bellscheduler" in line
 				if "BellSchedulerPlayer" in item.get("cmd",""):
 					bellId=item["cmd"].split(" ")[-1]
 					item["BellId"]=str(bellId)
 					output["BellScheduler"].update({bellId:item})
+		print("FILTER: {}".format(output))
 		return(output)
 	#def _filterBellSchedulerTasks
 
@@ -65,7 +70,7 @@ class SchedulerServer():
 	def write_tasks(self,*args):
 	#This function is for compat with BellScheduler only. 
 	#It fakes the input of the old n4d server plugin
-	#The new API distinguishes bewteen add/modiify 
+	#The new API distinguishes between add/modiify 
 	#checking for the presence of the original cmdline
 	#So it's mandatory to get that through BellID
 		inputTask=args[-1]
@@ -75,6 +80,8 @@ class SchedulerServer():
 				self._debug("L: {}".format(taskline))
 				for taskKey,task in taskline.items():
 					bellTask=self._getRawFromBellID(taskKey)
+					if task.get("holidays",False)==True:
+						task["cmd"]="{} && {}".format(self.holidays_shell,task["cmd"])
 					cron.append(task)
 		self._debug("FULL CRON: {}".format(cron))
 		self.taskscheduler.cronFromJson(cron,cronF="/etc/cron.d/localBellScheduler",orig=bellTask)
@@ -93,6 +100,7 @@ class SchedulerServer():
 				cron=[]
 				with open(cronF,"r") as fh:
 					for line in fh.readlines():
+						print(line.split()[-1].strip())
 						if line.split()[-1].strip()!=str(bellId):
 							self._debug(cron.append(line))
 				with open(cronF,"w") as fh:
