@@ -1,4 +1,4 @@
-n4d-taskscheduler (2.9) focal-updates; urgency=medium
+n4d-taskscheduler (3.0) jammy; urgency=medium
 
   * Split from taskscheduler
   * Plugin for python3-taskscheduler
