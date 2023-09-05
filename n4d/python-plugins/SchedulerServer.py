@@ -13,7 +13,7 @@ from n4d.utils import n4d_mv
 
 class SchedulerServer():
 	def __init__(self):
-		self.dbg=True
+		self.dbg=False
 		self.tasks_dir="/etc/scheduler/tasks.d"
 		self.available_tasks_dir="/etc/scheduler/conf.d/tasks"
 		self.conf_dir="/etc/scheduler/conf.d/"
@@ -39,17 +39,13 @@ class SchedulerServer():
 
 	def _filterBellSchedulerTasks(self,tasks):
 		output={"BellScheduler":{}}
-		print("REV: {}".format(tasks))
 		for key,item in tasks.items():
 			if "/etc/cron.d/localBellScheduler" == item.get("file","") or item.get("file","x")=="x":
-				print("FILETERD")
-				print(item)
 				#The bellID is the last parm if "bellscheduler" in line
 				if "BellSchedulerPlayer" in item.get("cmd",""):
 					bellId=item["cmd"].split(" ")[-1]
 					item["BellId"]=str(bellId)
 					output["BellScheduler"].update({bellId:item})
-		print("FILTER: {}".format(output))
 		return(output)
 	#def _filterBellSchedulerTasks
 
@@ -100,7 +96,6 @@ class SchedulerServer():
 				cron=[]
 				with open(cronF,"r") as fh:
 					for line in fh.readlines():
-						print(line.split()[-1].strip())
 						if line.split()[-1].strip()!=str(bellId):
 							self._debug(cron.append(line))
 				with open(cronF,"w") as fh:
