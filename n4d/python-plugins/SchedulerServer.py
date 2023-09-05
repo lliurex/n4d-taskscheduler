@@ -13,11 +13,12 @@ from n4d.utils import n4d_mv
 
 class SchedulerServer():
 	def __init__(self):
-		self.dbg=True
+		self.dbg=False
 		self.tasks_dir="/etc/scheduler/tasks.d"
 		self.available_tasks_dir="/etc/scheduler/conf.d/tasks"
 		self.conf_dir="/etc/scheduler/conf.d/"
 		self.conf_file="%s/scheduler.conf"%self.conf_dir
+		self.holidays_shell="/usr/bin/check_holidays.py"
 		self.n4dCore=n4dCore.Core.get_core()
 		self.taskscheduler=taskscheduler.TaskScheduler()
 	#def __init__
@@ -65,7 +66,7 @@ class SchedulerServer():
 	def write_tasks(self,*args):
 	#This function is for compat with BellScheduler only. 
 	#It fakes the input of the old n4d server plugin
-	#The new API distinguishes bewteen add/modiify 
+	#The new API distinguishes between add/modiify 
 	#checking for the presence of the original cmdline
 	#So it's mandatory to get that through BellID
 		inputTask=args[-1]
@@ -75,6 +76,8 @@ class SchedulerServer():
 				self._debug("L: {}".format(taskline))
 				for taskKey,task in taskline.items():
 					bellTask=self._getRawFromBellID(taskKey)
+					if task.get("holidays",False)==True:
+						task["cmd"]="{} && {}".format(self.holidays_shell,task["cmd"])
 					cron.append(task)
 		self._debug("FULL CRON: {}".format(cron))
 		self.taskscheduler.cronFromJson(cron,cronF="/etc/cron.d/localBellScheduler",orig=bellTask)
